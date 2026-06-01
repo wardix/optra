@@ -15,7 +15,7 @@ export const colors = {
 }
 
 /**
- * Executes a single sweep cycle of FTTx subscribers
+ * Executes a single sweep cycle of FTTx subscribers using a concurrent worker pool
  */
 export async function runSweepCycle(cycleCount: number): Promise<any> {
   const dyingGaspSkipHours = parseInt(Bun.env.DYING_GASP_SKIP_HOURS || '8', 10)
@@ -39,7 +39,7 @@ export async function runSweepCycle(cycleCount: number): Promise<any> {
   console.log('==========================================================================\n')
 
   let db: TelemetryDatabase | null = null
-  const results = []
+  const results: any[] = []
 
   try {
     db = new TelemetryDatabase()
@@ -49,29 +49,23 @@ export async function runSweepCycle(cycleCount: number): Promise<any> {
     const nisClient = new NisGatewayClient()
 
     // 1. Authenticate Protelindo
-    const token = await authManager.getValidAccessToken()
+    await authManager.getValidAccessToken()
     console.log(`${colors.green}✓ Protelindo session verified.${colors.reset}\n`)
 
-    // 2. Fetch subscriber homepasses page-by-page and query status sequentially
+    // 2. Fetch all valid homepasses into a single task queue
     let page = 1
     const pageSize = 100
     let totalHomepasses = 0
-    let processedHomepasses = 0
     let hasMore = true
+    const taskQueue: any[] = []
 
-    const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
-    const delayMs = parseInt(Bun.env.ONT_QUERY_DELAY_MS || '1000', 10)
-
-    console.log(
-      `🔌 Starting sequential ONT query loop with delay of ${colors.bold}${delayMs}ms${colors.reset}...\n`,
-    )
+    console.log('🔌 Pulling active subscriber homepasses from NIS Gateway...')
 
     while (hasMore) {
       if (maxPages > 0 && page > maxPages) {
         console.log(
-          `${colors.yellow}⚠️ Max page limit of ${maxPages} reached. Stopping batch sweep.${colors.reset}`,
+          `${colors.yellow}⚠️ Max page limit of ${maxPages} reached. Stopping batch fetch.${colors.reset}`,
         )
-        hasMore = false
         break
       }
 
@@ -80,25 +74,52 @@ export async function runSweepCycle(cycleCount: number): Promise<any> {
 
       const batchResults = response.results
       if (batchResults.length === 0) {
-        hasMore = false
         break
       }
 
       const validHomepasses = batchResults.filter(
         (hp) => hp.homepass_id && hp.homepass_id.trim() !== '',
       )
+      taskQueue.push(...validHomepasses)
 
-      for (let i = 0; i < validHomepasses.length; i++) {
-        const hp = validHomepasses[i]
+      page++
+      const fetchedSoFar = (page - 1) * pageSize
+      if (fetchedSoFar >= totalHomepasses) {
+        hasMore = false
+      }
+    }
+
+    const actualTotal = taskQueue.length
+    console.log(
+      `🔌 Pulled ${colors.bold}${actualTotal}${colors.reset} valid subscriber homepasses.\n`,
+    )
+
+    // 3. Process the queue using a concurrent worker pool
+    const concurrency = parseInt(Bun.env.MONITOR_CONCURRENCY || '5', 10)
+    const delayMs = parseInt(Bun.env.ONT_QUERY_DELAY_MS || '1000', 10)
+    const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+    console.log(
+      `🔌 Starting Worker Pool with ${colors.bold}${concurrency} workers${colors.reset} and a delay of ${colors.bold}${delayMs}ms${colors.reset} per task...\n`,
+    )
+
+    let processedHomepasses = 0
+
+    async function startWorker(workerId: number) {
+      while (taskQueue.length > 0) {
+        const hp = taskQueue.shift()
+        if (!hp) break
+
         processedHomepasses++
+        const currentNum = processedHomepasses
 
         // [OPTIMIZATION 1]: Check if subscriber should be skipped due to a recent dying-gasp power outage
-        if (await db.shouldSkipDyingGasp(hp.subscriber_id, dyingGaspSkipHours)) {
+        if (await db!.shouldSkipDyingGasp(hp.subscriber_id, dyingGaspSkipHours)) {
           console.log(
-            `🔌 [${processedHomepasses}/${totalHomepasses}] ${colors.yellow}Skipping ${hp.subscriber_name} (Recent dying-gasp offline check < ${dyingGaspSkipHours} hours ago).${colors.reset}`,
+            `🔌 [W#${workerId}][${currentNum}/${actualTotal}] ${colors.yellow}Skipping ${hp.subscriber_name} (Recent dying-gasp offline check < ${dyingGaspSkipHours} hours ago).${colors.reset}`,
           )
 
-          const cached = await db.getLatestCurrentStatus(hp.subscriber_id)
+          const cached = await db!.getLatestCurrentStatus(hp.subscriber_id)
           if (cached) {
             let parsedDetail = {}
             try {
@@ -126,13 +147,13 @@ export async function runSweepCycle(cycleCount: number): Promise<any> {
 
         // [OPTIMIZATION 2]: Check if subscriber should be skipped due to a recent excellent signal check
         if (
-          await db.shouldSkipGoodSignal(hp.subscriber_id, goodSignalSkipHours, goodSignalThreshold)
+          await db!.shouldSkipGoodSignal(hp.subscriber_id, goodSignalSkipHours, goodSignalThreshold)
         ) {
           console.log(
-            `🔌 [${processedHomepasses}/${totalHomepasses}] ${colors.green}Skipping ${hp.subscriber_name} (Excellent signal > ${goodSignalThreshold} dBm checked < ${goodSignalSkipHours} hours ago).${colors.reset}`,
+            `🔌 [W#${workerId}][${currentNum}/${actualTotal}] ${colors.green}Skipping ${hp.subscriber_name} (Excellent signal > ${goodSignalThreshold} dBm checked < ${goodSignalSkipHours} hours ago).${colors.reset}`,
           )
 
-          const cached = await db.getLatestCurrentStatus(hp.subscriber_id)
+          const cached = await db!.getLatestCurrentStatus(hp.subscriber_id)
           if (cached) {
             let parsedDetail = {}
             try {
@@ -159,7 +180,7 @@ export async function runSweepCycle(cycleCount: number): Promise<any> {
         }
 
         // [OPTIMIZATION 3]: Check if subscriber should be skipped due to progressive offline backoff
-        const backoffCheck = await db.shouldSkipOfflineBackoff(hp.subscriber_id, {
+        const backoffCheck = await db!.shouldSkipOfflineBackoff(hp.subscriber_id, {
           range1To6HoursSkipMin: offline1To6Min,
           range6To24HoursSkipMin: offline6To24Min,
           rangeAbove24HoursSkipMin: offlineAbove24Min,
@@ -167,10 +188,10 @@ export async function runSweepCycle(cycleCount: number): Promise<any> {
 
         if (backoffCheck.shouldSkip) {
           console.log(
-            `🔌 [${processedHomepasses}/${totalHomepasses}] ${colors.yellow}Skipping ${hp.subscriber_name} (Offline backoff: ${backoffCheck.reason}).${colors.reset}`,
+            `🔌 [W#${workerId}][${currentNum}/${actualTotal}] ${colors.yellow}Skipping ${hp.subscriber_name} (Offline backoff: ${backoffCheck.reason}).${colors.reset}`,
           )
 
-          const cached = await db.getLatestCurrentStatus(hp.subscriber_id)
+          const cached = await db!.getLatestCurrentStatus(hp.subscriber_id)
           if (cached) {
             let parsedDetail = {}
             try {
@@ -197,13 +218,13 @@ export async function runSweepCycle(cycleCount: number): Promise<any> {
         }
 
         console.log(
-          `🔌 [${processedHomepasses}/${totalHomepasses}] Fetching ONT status for ${colors.bold}${hp.subscriber_name}${colors.reset} (${hp.homepass_id})...`,
+          `🔌 [W#${workerId}][${currentNum}/${actualTotal}] Fetching ONT status for ${colors.bold}${hp.subscriber_name}${colors.reset} (${hp.homepass_id})...`,
         )
 
         try {
           const detail = await authManager.getOntStatus(hp.circuit_id, hp.homepass_id)
 
-          await db.insertLog(
+          await db!.insertLog(
             hp.subscriber_id,
             hp.circuit_id,
             hp.homepass_id,
@@ -221,7 +242,7 @@ export async function runSweepCycle(cycleCount: number): Promise<any> {
         } catch (err: any) {
           const errorMessage = err.message || 'Failed to fetch status'
 
-          await db.insertLog(
+          await db!.insertLog(
             hp.subscriber_id,
             hp.circuit_id,
             hp.homepass_id,
@@ -238,23 +259,20 @@ export async function runSweepCycle(cycleCount: number): Promise<any> {
           })
         }
 
-        // Apply delay between status fetches
-        const isLastItem =
-          processedHomepasses >= totalHomepasses ||
-          (processedHomepasses >= results.length && !hasMore && i === validHomepasses.length - 1)
-        if (!isLastItem) {
+        // Apply delay between status fetches per worker
+        if (taskQueue.length > 0) {
           await delay(delayMs)
         }
       }
-
-      page++
-      const fetchedSoFar = (page - 1) * pageSize
-      if (fetchedSoFar >= totalHomepasses) {
-        hasMore = false
-      }
     }
 
-    // 3. Present the dashboard in console
+    const workers = []
+    for (let w = 1; w <= concurrency; w++) {
+      workers.push(startWorker(w))
+    }
+    await Promise.all(workers)
+
+    // 4. Present the dashboard in console
     console.log(`\n==========================================================================`)
     console.log(
       `${colors.cyan}${colors.bold}📈 ACTIVE ONT STATUS SUMMARY (CYCLE #${cycleCount})${colors.reset}`,
@@ -318,6 +336,7 @@ async function main() {
     Bun.env.OFFLINE_BACKOFF_ABOVE_24_HOURS_SKIP_MINUTES || '720',
     10,
   )
+  const concurrency = parseInt(Bun.env.MONITOR_CONCURRENCY || '5', 10)
 
   let cycleCount = 0
 
@@ -327,6 +346,9 @@ async function main() {
   )
   console.log(
     `- Sweep Cooldown : ${colors.bold}${loopIntervalMs / 1000} seconds${colors.reset} between sweeps.`,
+  )
+  console.log(
+    `- Concurrency    : ${colors.bold}${concurrency} workers${colors.reset} running in parallel.`,
   )
   console.log(
     `- Dying-Gasp Skip: ${colors.bold}${dyingGaspSkipHours} hours${colors.reset} cooldown for power outages.`,

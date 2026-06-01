@@ -34,6 +34,10 @@ interface HistoryItem {
   checked_at: number
 }
 
+const API_BASE = import.meta.env.BASE_URL.endsWith('/')
+  ? import.meta.env.BASE_URL.slice(0, -1)
+  : import.meta.env.BASE_URL
+
 export default function App() {
   const [stats, setStats] = useState<Stats>({
     total: 0,
@@ -63,7 +67,7 @@ export default function App() {
 
     setIsCheckingOnt(true)
     try {
-      const res = await fetch(`/api/check`, {
+      const res = await fetch(`${API_BASE}/api/check`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -80,7 +84,7 @@ export default function App() {
           fetchData(),
           (async () => {
             if (selectedHomepass) {
-              const histRes = await fetch(`/api/history/${selectedHomepass}`)
+              const histRes = await fetch(`${API_BASE}/api/history/${selectedHomepass}`)
               if (histRes.ok) setHistoryList(await histRes.json())
             }
           })(),
@@ -100,22 +104,22 @@ export default function App() {
   // Refresh stats and basic lists
   const fetchData = async () => {
     try {
-      const statsRes = await fetch('/api/stats')
+      const statsRes = await fetch(`${API_BASE}/api/stats`)
       if (statsRes.ok) setStats(await statsRes.json())
 
-      const weakRes = await fetch('/api/weak-signals')
+      const weakRes = await fetch(`${API_BASE}/api/weak-signals`)
       if (weakRes.ok) setWeakSignals(await weakRes.json())
 
-      const outagesRes = await fetch('/api/outages')
+      const outagesRes = await fetch(`${API_BASE}/api/outages`)
       if (outagesRes.ok) setOutages(await outagesRes.json())
 
-      const losRes = await fetch('/api/outages?type=los')
+      const losRes = await fetch(`${API_BASE}/api/outages?type=los`)
       if (losRes.ok) setLosOutages(await losRes.json())
 
-      const unspecifiedRes = await fetch('/api/outages?type=unspecified')
+      const unspecifiedRes = await fetch(`${API_BASE}/api/outages?type=unspecified`)
       if (unspecifiedRes.ok) setUnspecifiedOutages(await unspecifiedRes.json())
 
-      const unknownRes = await fetch('/api/outages?type=unknown')
+      const unknownRes = await fetch(`${API_BASE}/api/outages?type=unknown`)
       if (unknownRes.ok) setUnknownOutages(await unknownRes.json())
     } catch (err) {
       console.error('Error fetching dashboard data:', err)
@@ -135,7 +139,7 @@ export default function App() {
     const fetchHistory = async () => {
       setIsLoadingHistory(true)
       try {
-        const res = await fetch(`/api/history/${selectedHomepass}`)
+        const res = await fetch(`${API_BASE}/api/history/${selectedHomepass}`)
         if (res.ok) setHistoryList(await res.json())
       } catch (err) {
         console.error('Error loading history:', err)

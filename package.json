@@ -1,0 +1,23 @@
+{
+  "name": "protelindo-ont-monitor",
+  "version": "2.0.0",
+  "private": true,
+  "scripts": {
+    "dev:sweeper": "bun run src/sweeper.ts",
+    "dev:server": "bun run src/server.ts",
+    "build:frontend": "cd frontend && bun run build",
+    "format": "bunx @biomejs/biome format --write src/ frontend/src/App.tsx frontend/src/main.tsx",
+    "prepare": "husky"
+  },
+  "dependencies": {
+    "hono": "^4.12.23"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.7"
+  },
+  "lint-staged": {
+    "src/**/*.ts": "bunx @biomejs/biome format --write",
+    "frontend/src/**/*.{ts,tsx}": "bunx @biomejs/biome format --write"
+  }
+}

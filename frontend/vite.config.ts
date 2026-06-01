@@ -4,11 +4,13 @@ import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: '/optra/',
   plugins: [react(), tailwindcss()],
   server: {
     proxy: {
-      '/api': {
+      '/optra/api': {
         target: 'http://localhost:3000',
+        rewrite: (path) => path.replace(/^\/optra/, ''),
         changeOrigin: true,
       }
     }

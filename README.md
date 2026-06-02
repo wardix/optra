@@ -185,6 +185,7 @@ Buat file `.env` di direktori root berdasarkan template `.env.example` berikut:
 | **MONITOR_LOOP_INTERVAL_MS** | Cooldown tidur daemon antar sweep siklus | `300000` (5 menit) |
 | **MONITOR_MAX_PAGES** | Batas maksimal halaman NIS (0 = sapu semua) | `0` |
 | **MONITOR_CONCURRENCY** | Jumlah pekerja (worker) paralel pemantauan ONT | `5` (5 worker paralel) |
+| **API_TIMEOUT_MS** | Batas waktu (timeout) request HTTP ke API eksternal | `30000` (30 detik) |
 | **DYING_GASP_SKIP_HOURS** | Cooldown bypass pengecekan mati listrik | `8` (8 jam) |
 | **GOOD_SIGNAL_SKIP_HOURS** | Cooldown bypass pengecekan sinyal prima | `6` (6 jam) |
 | **GOOD_SIGNAL_THRESHOLD** | Batas daya minimal klasifikasi sinyal prima | `-20` (-20 dBm) |

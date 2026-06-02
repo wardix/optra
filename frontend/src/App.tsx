@@ -58,6 +58,7 @@ export default function App() {
   const [unspecifiedOutages, setUnspecifiedOutages] = useState<Subscriber[]>([])
   const [unknownOutages, setUnknownOutages] = useState<Subscriber[]>([])
   const [chronicOutageThresholdDays, setChronicOutageThresholdDays] = useState(40)
+  const [weakSignalThresholdDbm, setWeakSignalThresholdDbm] = useState(-24)
   const [selectedHomepass, setSelectedHomepass] = useState<string | null>(null)
   const [historyList, setHistoryList] = useState<HistoryItem[]>([])
   const [isLoadingHistory, setIsLoadingHistory] = useState(false)
@@ -109,6 +110,7 @@ export default function App() {
       if (configRes.ok) {
         const config = await configRes.json()
         setChronicOutageThresholdDays(config.chronicOutageThresholdDays ?? 40)
+        setWeakSignalThresholdDbm(config.weakSignalThresholdDbm ?? -24)
       }
 
       const statsRes = await fetch(`${API_BASE}/api/stats`)
@@ -308,7 +310,7 @@ export default function App() {
                 onClick={() => setActiveTab('weak')}
                 className={`tab font-bold text-[11px] px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all duration-200 ${activeTab === 'weak' ? 'tab-active bg-indigo-600 text-white shadow-md shadow-indigo-600/20' : 'text-slate-400 hover:text-slate-200'}`}
               >
-                <span>⚠️ Sinyal Lemah</span>
+                <span>⚠️ Sinyal Lemah (≤ {weakSignalThresholdDbm} dBm)</span>
                 {weakSignals.length > 0 && (
                   <span
                     className={`badge badge-sm border-0 font-bold ${activeTab === 'weak' ? 'bg-white text-indigo-700' : 'bg-amber-500/20 text-amber-400'}`}

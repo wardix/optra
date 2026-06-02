@@ -307,12 +307,12 @@ export class TelemetryDatabase {
   }
 
   /**
-   * Retrieves the online ONTs with the lowest (worst) optical signal strength
+   * Retrieves the online ONTs with optical signal strength below the specified threshold
    */
-  public async getLowestSignals(limit: number = 100): Promise<any[]> {
+  public async getWeakSignals(thresholdDbm: number = -24, limit: number = 100): Promise<any[]> {
     return await this.sql`
       SELECT * FROM ont_current_status
-      WHERE run_state = 'online' AND rx_optical_power IS NOT NULL
+      WHERE run_state = 'online' AND rx_optical_power IS NOT NULL AND rx_optical_power <= ${thresholdDbm}
       ORDER BY rx_optical_power ASC
       LIMIT ${limit}
     `

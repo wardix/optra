@@ -4,11 +4,13 @@ export class NisGatewayClient {
   private apiUrl: string
   private token: string
   private defaultOperatorId: string
+  private timeoutMs: number
 
   constructor() {
     this.apiUrl = Bun.env.NIS_HOMEPASS_API_URL || ''
     this.token = Bun.env.NIS_GATEWAY_TOKEN || ''
     this.defaultOperatorId = Bun.env.PROTELINDO_OPERATOR_ID || '22'
+    this.timeoutMs = parseInt(Bun.env.API_TIMEOUT_MS || '30000', 10)
 
     if (!this.apiUrl || !this.token) {
       console.warn('⚠️ Warning: NIS Homepass API URL or Token is missing in your .env file!')
@@ -43,6 +45,7 @@ export class NisGatewayClient {
     const response = await fetch(url.toString(), {
       method: 'GET',
       headers,
+      signal: AbortSignal.timeout(this.timeoutMs),
     })
 
     if (!response.ok) {

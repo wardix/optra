@@ -7,6 +7,7 @@ export class ProtelindoAuthManager {
   private username: string
   private password: string
   private partnerSource: string
+  private timeoutMs: number
 
   constructor() {
     this.authUrl = Bun.env.PROTELINDO_AUTH_API_URL || ''
@@ -14,6 +15,7 @@ export class ProtelindoAuthManager {
     this.username = Bun.env.PROTELINDO_API_USERNAME || ''
     this.password = Bun.env.PROTELINDO_API_PASSWORD || ''
     this.partnerSource = Bun.env.PARTNER_SOURCE || 'NUSANET'
+    this.timeoutMs = parseInt(Bun.env.API_TIMEOUT_MS || '30000', 10)
 
     if (!this.authUrl || !this.username || !this.password) {
       console.warn('⚠️ Warning: Protelindo Authentication variables are missing in your .env file!')
@@ -112,6 +114,7 @@ export class ProtelindoAuthManager {
       method: 'POST',
       headers,
       body,
+      signal: AbortSignal.timeout(this.timeoutMs),
     })
 
     if (!response.ok) {
@@ -148,6 +151,7 @@ export class ProtelindoAuthManager {
       method: 'POST',
       headers,
       body,
+      signal: AbortSignal.timeout(this.timeoutMs),
     })
 
     if (!response.ok) {
@@ -217,6 +221,7 @@ export class ProtelindoAuthManager {
     const response = await fetch(this.statusUrl, {
       method: 'POST',
       headers,
+      signal: AbortSignal.timeout(this.timeoutMs),
     })
 
     if (!response.ok) {

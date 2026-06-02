@@ -22,7 +22,7 @@ Dibangun di atas runtime **Bun**, framework **Hono**, **React 19**, **Tailwind C
 * Dashboard *single-page application* dengan tema *Dark-NOC* premium menggunakan palette warna terkurasi (Slate-950/Cyan/Indigo/Emerald/Rose).
 * **5 Tab Data Kasus Terfilter**:
    1. **🔴 Chronic Outage**: Daftar khusus pelanggan dengan downtime kronis melebihi ambang batas yang dikonfigurasi (default: 40 hari, dikontrol via `CHRONIC_OUTAGE_THRESHOLD_DAYS`), diurutkan dari durasi downtime terlama (paling kritis) ke terbaru.
-  2. **⚠️ Sinyal Lemah**: Menampilkan seluruh ONT online dengan daya terima optik lemah (Rx <= -24 dBm) untuk pemeliharaan preventif.
+  2. **⚠️ Sinyal Lemah**: Menampilkan seluruh ONT online dengan daya terima optik lemah (Rx ≤ threshold yang dikonfigurasi, default: -24 dBm, dikontrol via `WEAK_SIGNAL_THRESHOLD_DBM`) untuk pemeliharaan preventif.
   3. **❌ Mati karena LOS**: Menampilkan ONT yang mati akibat kehilangan sinyal (*Loss of Signal*), diurutkan berdasarkan awal downtime terlama.
   4. **❓ Penyebab Tidak Spesifik (--)**: Menampilkan ONT offline dengan alasan tidak spesifik dari OLT.
   5. **⚠️ Status Tidak Diketahui**: Mengelompokkan ONT dengan kesalahan telemetry (*error*) atau status run-state `unknown`.
@@ -192,6 +192,7 @@ Buat file `.env` di direktori root berdasarkan template `.env.example` berikut:
 | **OFFLINE_BACKOFF_6_TO_24_HOURS_SKIP_MINUTES** | Jeda pemantauan jika mati 6 s.d 24 jam | `240` (4 jam) |
 | **OFFLINE_BACKOFF_ABOVE_24_HOURS_SKIP_MINUTES**| Jeda pemantauan jika mati > 24 jam | `720` (12 jam) |
 | **CHRONIC_OUTAGE_THRESHOLD_DAYS** | Ambang batas hari untuk klasifikasi chronic outage di dashboard | `40` (40 hari) |
+| **WEAK_SIGNAL_THRESHOLD_DBM** | Ambang batas Rx Power (dBm) untuk klasifikasi sinyal lemah di dashboard | `-24` (-24 dBm) |
 
 ---
 

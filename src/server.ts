@@ -8,6 +8,9 @@ const app = new Hono()
 // Configurable chronic outage threshold (days)
 const CHRONIC_OUTAGE_THRESHOLD_DAYS = parseInt(Bun.env.CHRONIC_OUTAGE_THRESHOLD_DAYS || '40', 10)
 
+// Configurable weak signal threshold (dBm)
+const WEAK_SIGNAL_THRESHOLD_DBM = parseFloat(Bun.env.WEAK_SIGNAL_THRESHOLD_DBM || '-24')
+
 // CORS Helper for development
 app.use('*', async (c, next) => {
   c.header('Access-Control-Allow-Origin', '*')
@@ -26,6 +29,7 @@ app.use('*', async (c, next) => {
 app.get('/api/config', (c) => {
   return c.json({
     chronicOutageThresholdDays: CHRONIC_OUTAGE_THRESHOLD_DAYS,
+    weakSignalThresholdDbm: WEAK_SIGNAL_THRESHOLD_DBM,
   })
 })
 
@@ -55,7 +59,7 @@ app.get('/api/weak-signals', async (c) => {
   const db = new TelemetryDatabase()
   try {
     await db.init()
-    const list = await db.getLowestSignals(limit)
+    const list = await db.getWeakSignals(WEAK_SIGNAL_THRESHOLD_DBM, limit)
     return c.json(list)
   } catch (err: any) {
     return c.json({ error: err.message || 'Failed to fetch weak signals' }, 500)

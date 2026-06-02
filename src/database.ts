@@ -309,7 +309,7 @@ export class TelemetryDatabase {
   /**
    * Retrieves the online ONTs with the lowest (worst) optical signal strength
    */
-  public async getLowestSignals(limit: number = 10): Promise<any[]> {
+  public async getLowestSignals(limit: number = 100): Promise<any[]> {
     return await this.sql`
       SELECT * FROM ont_current_status
       WHERE run_state = 'online' AND rx_optical_power IS NOT NULL
@@ -321,7 +321,7 @@ export class TelemetryDatabase {
   /**
    * Retrieves the offline ONTs whose last down cause was a power loss (dying-gasp)
    */
-  public async getDyingGaspOutages(limit: number = 50): Promise<any[]> {
+  public async getDyingGaspOutages(limit: number = 1000): Promise<any[]> {
     return await this.sql`
       SELECT * FROM ont_current_status
       WHERE run_state = 'offline' AND last_down_cause = 'dying-gasp'
@@ -333,7 +333,7 @@ export class TelemetryDatabase {
   /**
    * Retrieves the offline ONTs whose last down cause was a fiber cut (LOS), sorted by oldest downtime first
    */
-  public async getLosOutages(limit: number = 50): Promise<any[]> {
+  public async getLosOutages(limit: number = 1000): Promise<any[]> {
     return await this.sql`
       SELECT * FROM ont_current_status
       WHERE run_state = 'offline' AND last_down_cause = 'LOS' AND last_down_time IS NOT NULL
@@ -345,7 +345,7 @@ export class TelemetryDatabase {
   /**
    * Retrieves the offline ONTs whose last down cause was unspecified (e.g. '--' or empty)
    */
-  public async getUnspecifiedOutages(limit: number = 50): Promise<any[]> {
+  public async getUnspecifiedOutages(limit: number = 1000): Promise<any[]> {
     return await this.sql`
       SELECT * FROM ont_current_status
       WHERE run_state = 'offline' AND (last_down_cause = '--' OR last_down_cause IS NULL OR last_down_cause = '')
@@ -357,7 +357,7 @@ export class TelemetryDatabase {
   /**
    * Retrieves the ONTs with unknown status or failed telemetry checks
    */
-  public async getUnknownOutages(limit: number = 50): Promise<any[]> {
+  public async getUnknownOutages(limit: number = 1000): Promise<any[]> {
     return await this.sql`
       SELECT * FROM ont_current_status
       WHERE run_state = 'unknown' OR run_state = 'error'
@@ -369,7 +369,7 @@ export class TelemetryDatabase {
   /**
    * Retrieves the offline ONTs that have been down for more than the specified threshold (longest offline first)
    */
-  public async getChronicOutages(thresholdDays: number = 40, limit: number = 50): Promise<any[]> {
+  public async getChronicOutages(thresholdDays: number = 40, limit: number = 1000): Promise<any[]> {
     const cutoff = Date.now() - thresholdDays * 24 * 60 * 60 * 1000
     return await this.sql`
       SELECT * FROM ont_current_status

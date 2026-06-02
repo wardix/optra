@@ -51,7 +51,7 @@ app.get('/api/stats', async (c) => {
  * Retrieves the top 10 worst optical power strengths
  */
 app.get('/api/weak-signals', async (c) => {
-  const limit = parseInt(c.req.query('limit') || '10', 10)
+  const limit = parseInt(c.req.query('limit') || '100', 10)
   const db = new TelemetryDatabase()
   try {
     await db.init()
@@ -70,7 +70,7 @@ app.get('/api/weak-signals', async (c) => {
  */
 app.get('/api/outages', async (c) => {
   const type = c.req.query('type') // e.g. "dying-gasp" or "longest"
-  const limit = parseInt(c.req.query('limit') || '50', 10)
+  const limit = parseInt(c.req.query('limit') || '1000', 10)
 
   const db = new TelemetryDatabase()
   try {

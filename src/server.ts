@@ -5,6 +5,9 @@ import { ProtelindoAuthManager } from './protelindo'
 
 const app = new Hono()
 
+// Configurable chronic outage threshold (days)
+const CHRONIC_OUTAGE_THRESHOLD_DAYS = parseInt(Bun.env.CHRONIC_OUTAGE_THRESHOLD_DAYS || '40', 10)
+
 // CORS Helper for development
 app.use('*', async (c, next) => {
   c.header('Access-Control-Allow-Origin', '*')
@@ -14,6 +17,16 @@ app.use('*', async (c, next) => {
     return c.text('OK', 200)
   }
   await next()
+})
+
+/**
+ * GET /api/config
+ * Exposes runtime configuration to the frontend (e.g. chronic outage threshold)
+ */
+app.get('/api/config', (c) => {
+  return c.json({
+    chronicOutageThresholdDays: CHRONIC_OUTAGE_THRESHOLD_DAYS,
+  })
 })
 
 /**
@@ -72,7 +85,7 @@ app.get('/api/outages', async (c) => {
     } else if (type === 'unknown') {
       list = await db.getUnknownOutages(limit)
     } else {
-      list = await db.getLongestOutages(limit)
+      list = await db.getChronicOutages(CHRONIC_OUTAGE_THRESHOLD_DAYS, limit)
     }
     return c.json(list)
   } catch (err: any) {

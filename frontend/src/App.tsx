@@ -57,6 +57,7 @@ export default function App() {
   const [losOutages, setLosOutages] = useState<Subscriber[]>([])
   const [unspecifiedOutages, setUnspecifiedOutages] = useState<Subscriber[]>([])
   const [unknownOutages, setUnknownOutages] = useState<Subscriber[]>([])
+  const [chronicOutageThresholdDays, setChronicOutageThresholdDays] = useState(40)
   const [selectedHomepass, setSelectedHomepass] = useState<string | null>(null)
   const [historyList, setHistoryList] = useState<HistoryItem[]>([])
   const [isLoadingHistory, setIsLoadingHistory] = useState(false)
@@ -104,6 +105,12 @@ export default function App() {
   // Refresh stats and basic lists
   const fetchData = async () => {
     try {
+      const configRes = await fetch(`${API_BASE}/api/config`)
+      if (configRes.ok) {
+        const config = await configRes.json()
+        setChronicOutageThresholdDays(config.chronicOutageThresholdDays ?? 40)
+      }
+
       const statsRes = await fetch(`${API_BASE}/api/stats`)
       if (statsRes.ok) setStats(await statsRes.json())
 
@@ -288,7 +295,7 @@ export default function App() {
                 onClick={() => setActiveTab('outages')}
                 className={`tab font-bold text-[11px] px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all duration-200 ${activeTab === 'outages' ? 'tab-active bg-indigo-600 text-white shadow-md shadow-indigo-600/20' : 'text-slate-400 hover:text-slate-200'}`}
               >
-                <span>🔴 Offline &gt; 40 Hari</span>
+                <span>🔴 Chronic Outage ({chronicOutageThresholdDays}d+)</span>
                 {outages.length > 0 && (
                   <span
                     className={`badge badge-sm border-0 font-bold ${activeTab === 'outages' ? 'bg-white text-indigo-700' : 'bg-rose-500/20 text-rose-400'}`}
@@ -357,7 +364,7 @@ export default function App() {
             <div className="overflow-x-auto">
               {outages.length === 0 ? (
                 <div className="text-center py-12 text-slate-500 font-bold">
-                  🎉 Hebat! Tidak ada ONT yang offline lebih dari 40 hari.
+                  🎉 Hebat! Tidak ada ONT yang offline lebih dari {chronicOutageThresholdDays} hari.
                 </div>
               ) : (
                 <table className="table table-zebra w-full text-left">

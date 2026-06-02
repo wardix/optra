@@ -367,13 +367,13 @@ export class TelemetryDatabase {
   }
 
   /**
-   * Retrieves the offline ONTs that have been down for more than 40 days (longest offline first)
+   * Retrieves the offline ONTs that have been down for more than the specified threshold (longest offline first)
    */
-  public async getLongestOutages(limit: number = 50): Promise<any[]> {
-    const fortyDaysAgo = Date.now() - 40 * 24 * 60 * 60 * 1000
+  public async getChronicOutages(thresholdDays: number = 40, limit: number = 50): Promise<any[]> {
+    const cutoff = Date.now() - thresholdDays * 24 * 60 * 60 * 1000
     return await this.sql`
       SELECT * FROM ont_current_status
-      WHERE run_state = 'offline' AND last_down_time IS NOT NULL AND last_down_time < ${fortyDaysAgo}
+      WHERE run_state = 'offline' AND last_down_time IS NOT NULL AND last_down_time < ${cutoff}
       ORDER BY last_down_time ASC
       LIMIT ${limit}
     `

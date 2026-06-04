@@ -150,38 +150,41 @@ export class TelemetryDatabase {
     `
 
     // 2. Upsert (Insert or Conflict Update) into current live status table
-    await this.sql`
-      INSERT INTO ont_current_status (
-        subscriber_id,
-        circuit_id,
-        homepass_id,
-        run_state,
-        rx_optical_power,
-        last_down_cause,
-        last_down_time,
-        raw_response,
-        updated_at
-      ) VALUES (
-        ${subscriberId},
-        ${circuitId},
-        ${homepassId},
-        ${runState},
-        ${rxOpticalPower},
-        ${lastDownCause},
-        ${lastDownTimeMs},
-        ${rawResponse},
-        ${now}
-      )
-      ON CONFLICT (subscriber_id) DO UPDATE SET
-        circuit_id = EXCLUDED.circuit_id,
-        homepass_id = EXCLUDED.homepass_id,
-        run_state = EXCLUDED.run_state,
-        rx_optical_power = EXCLUDED.rx_optical_power,
-        last_down_cause = EXCLUDED.last_down_cause,
-        last_down_time = EXCLUDED.last_down_time,
-        raw_response = EXCLUDED.raw_response,
-        updated_at = EXCLUDED.updated_at
-    `
+    //    Skip when runState is 'error' to preserve last known good state
+    if (runState !== 'error') {
+      await this.sql`
+        INSERT INTO ont_current_status (
+          subscriber_id,
+          circuit_id,
+          homepass_id,
+          run_state,
+          rx_optical_power,
+          last_down_cause,
+          last_down_time,
+          raw_response,
+          updated_at
+        ) VALUES (
+          ${subscriberId},
+          ${circuitId},
+          ${homepassId},
+          ${runState},
+          ${rxOpticalPower},
+          ${lastDownCause},
+          ${lastDownTimeMs},
+          ${rawResponse},
+          ${now}
+        )
+        ON CONFLICT (subscriber_id) DO UPDATE SET
+          circuit_id = EXCLUDED.circuit_id,
+          homepass_id = EXCLUDED.homepass_id,
+          run_state = EXCLUDED.run_state,
+          rx_optical_power = EXCLUDED.rx_optical_power,
+          last_down_cause = EXCLUDED.last_down_cause,
+          last_down_time = EXCLUDED.last_down_time,
+          raw_response = EXCLUDED.raw_response,
+          updated_at = EXCLUDED.updated_at
+      `
+    }
   }
 
   /**

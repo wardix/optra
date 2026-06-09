@@ -39,7 +39,9 @@ export async function runSweepCycle(cycleCount: number): Promise<any> {
   console.log('==========================================================================\n')
 
   let db: TelemetryDatabase | null = null
-  const results: any[] = []
+  let totalOnline = 0
+  let totalOffline = 0
+  let totalError = 0
 
   try {
     db = new TelemetryDatabase()
@@ -126,21 +128,10 @@ export async function runSweepCycle(cycleCount: number): Promise<any> {
               parsedDetail = JSON.parse(cached.raw_response)
             } catch (_) {}
 
-            results.push({
-              subscriberName: hp.subscriber_name,
-              circuitId: hp.circuit_id,
-              homepassId: hp.homepass_id,
-              status: parsedDetail,
-              error: null,
-            })
+            if ((parsedDetail as any).runState === 'online') totalOnline++
+            else totalOffline++
           } else {
-            results.push({
-              subscriberName: hp.subscriber_name,
-              circuitId: hp.circuit_id,
-              homepassId: hp.homepass_id,
-              status: { runState: 'offline', lastDownCause: 'dying-gasp' },
-              error: null,
-            })
+            totalOffline++
           }
           continue
         }
@@ -160,21 +151,10 @@ export async function runSweepCycle(cycleCount: number): Promise<any> {
               parsedDetail = JSON.parse(cached.raw_response)
             } catch (_) {}
 
-            results.push({
-              subscriberName: hp.subscriber_name,
-              circuitId: hp.circuit_id,
-              homepassId: hp.homepass_id,
-              status: parsedDetail,
-              error: null,
-            })
+            if ((parsedDetail as any).runState === 'online') totalOnline++
+            else totalOffline++
           } else {
-            results.push({
-              subscriberName: hp.subscriber_name,
-              circuitId: hp.circuit_id,
-              homepassId: hp.homepass_id,
-              status: { runState: 'online', rxOpticalPower: '-15.00' },
-              error: null,
-            })
+            totalOnline++
           }
           continue
         }
@@ -198,21 +178,10 @@ export async function runSweepCycle(cycleCount: number): Promise<any> {
               parsedDetail = JSON.parse(cached.raw_response)
             } catch (_) {}
 
-            results.push({
-              subscriberName: hp.subscriber_name,
-              circuitId: hp.circuit_id,
-              homepassId: hp.homepass_id,
-              status: parsedDetail,
-              error: null,
-            })
+            if ((parsedDetail as any).runState === 'online') totalOnline++
+            else totalOffline++
           } else {
-            results.push({
-              subscriberName: hp.subscriber_name,
-              circuitId: hp.circuit_id,
-              homepassId: hp.homepass_id,
-              status: { runState: 'offline' },
-              error: null,
-            })
+            totalOffline++
           }
           continue
         }
@@ -232,13 +201,8 @@ export async function runSweepCycle(cycleCount: number): Promise<any> {
             JSON.stringify(detail),
           )
 
-          results.push({
-            subscriberName: hp.subscriber_name,
-            circuitId: hp.circuit_id,
-            homepassId: hp.homepass_id,
-            status: detail,
-            error: null,
-          })
+          if (detail.runState === 'online') totalOnline++
+          else totalOffline++
         } catch (err: any) {
           const errorMessage = err.message || 'Failed to fetch status'
 
@@ -250,13 +214,7 @@ export async function runSweepCycle(cycleCount: number): Promise<any> {
             JSON.stringify({ error: errorMessage }),
           )
 
-          results.push({
-            subscriberName: hp.subscriber_name,
-            circuitId: hp.circuit_id,
-            homepassId: hp.homepass_id,
-            status: null,
-            error: errorMessage,
-          })
+          totalError++
         }
 
         // Apply delay between status fetches per worker
@@ -279,12 +237,7 @@ export async function runSweepCycle(cycleCount: number): Promise<any> {
     )
     console.log('==========================================================================\n')
 
-    const totalChecked = results.length
-    const totalOnline = results.filter((r) => r.status && r.status.runState === 'online').length
-    const totalOffline = results.filter((r) => r.status && r.status.runState === 'offline').length
-    const totalError = results.filter(
-      (r) => r.error || (r.status && r.status.runState === 'error'),
-    ).length
+    const totalChecked = totalOnline + totalOffline + totalError
 
     console.log(`📊 Total Subscribers Processed: ${colors.bold}${totalChecked}${colors.reset}`)
     console.log(`- ${colors.green}ONLINE  : ${totalOnline}${colors.reset}`)

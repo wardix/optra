@@ -11,6 +11,9 @@ const CHRONIC_OUTAGE_THRESHOLD_DAYS = parseInt(Bun.env.CHRONIC_OUTAGE_THRESHOLD_
 // Configurable weak signal threshold (dBm)
 const WEAK_SIGNAL_THRESHOLD_DBM = parseFloat(Bun.env.WEAK_SIGNAL_THRESHOLD_DBM || '-24')
 
+// Configurable stale entry threshold (hours)
+const STALE_ENTRY_THRESHOLD_HOURS = parseInt(Bun.env.STALE_ENTRY_THRESHOLD_HOURS || '48', 10)
+
 // CORS Helper for development
 app.use('*', async (c, next) => {
   c.header('Access-Control-Allow-Origin', '*')
@@ -30,6 +33,7 @@ app.get('/api/config', (c) => {
   return c.json({
     chronicOutageThresholdDays: CHRONIC_OUTAGE_THRESHOLD_DAYS,
     weakSignalThresholdDbm: WEAK_SIGNAL_THRESHOLD_DBM,
+    staleEntryThresholdHours: STALE_ENTRY_THRESHOLD_HOURS,
   })
 })
 

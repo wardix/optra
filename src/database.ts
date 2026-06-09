@@ -2,10 +2,13 @@ import { SQL } from 'bun'
 
 export class TelemetryDatabase {
   private sql: SQL
+  private staleCutoffMs: number
 
   constructor() {
     const dbUrl = Bun.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/postgres'
     this.sql = new SQL(dbUrl)
+    const staleHours = parseInt(Bun.env.STALE_ENTRY_THRESHOLD_HOURS || '48', 10)
+    this.staleCutoffMs = Date.now() - staleHours * 3600 * 1000
   }
 
   /**
@@ -316,6 +319,7 @@ export class TelemetryDatabase {
     return await this.sql`
       SELECT * FROM ont_current_status
       WHERE run_state = 'online' AND rx_optical_power IS NOT NULL AND rx_optical_power <= ${thresholdDbm}
+        AND updated_at > ${this.staleCutoffMs}
       ORDER BY rx_optical_power ASC
       LIMIT ${limit}
     `
@@ -328,6 +332,7 @@ export class TelemetryDatabase {
     return await this.sql`
       SELECT * FROM ont_current_status
       WHERE run_state = 'offline' AND last_down_cause = 'dying-gasp'
+        AND updated_at > ${this.staleCutoffMs}
       ORDER BY updated_at DESC
       LIMIT ${limit}
     `
@@ -340,6 +345,7 @@ export class TelemetryDatabase {
     return await this.sql`
       SELECT * FROM ont_current_status
       WHERE run_state = 'offline' AND last_down_cause = 'LOS' AND last_down_time IS NOT NULL
+        AND updated_at > ${this.staleCutoffMs}
       ORDER BY last_down_time ASC
       LIMIT ${limit}
     `
@@ -352,6 +358,7 @@ export class TelemetryDatabase {
     return await this.sql`
       SELECT * FROM ont_current_status
       WHERE run_state = 'offline' AND (last_down_cause = '--' OR last_down_cause IS NULL OR last_down_cause = '')
+        AND updated_at > ${this.staleCutoffMs}
       ORDER BY updated_at DESC
       LIMIT ${limit}
     `
@@ -363,7 +370,8 @@ export class TelemetryDatabase {
   public async getUnknownOutages(limit: number = 1000): Promise<any[]> {
     return await this.sql`
       SELECT * FROM ont_current_status
-      WHERE run_state = 'unknown' OR run_state = 'error'
+      WHERE (run_state = 'unknown' OR run_state = 'error')
+        AND updated_at > ${this.staleCutoffMs}
       ORDER BY updated_at DESC
       LIMIT ${limit}
     `
@@ -377,6 +385,7 @@ export class TelemetryDatabase {
     return await this.sql`
       SELECT * FROM ont_current_status
       WHERE run_state = 'offline' AND last_down_time IS NOT NULL AND last_down_time < ${cutoff}
+        AND updated_at > ${this.staleCutoffMs}
       ORDER BY last_down_time ASC
       LIMIT ${limit}
     `
@@ -410,13 +419,15 @@ export class TelemetryDatabase {
         SELECT * FROM ont_current_status
         WHERE run_state = ${status}
           AND (circuit_id LIKE ${searchPattern} OR homepass_id LIKE ${searchPattern} OR raw_response LIKE ${searchPattern})
+          AND updated_at > ${this.staleCutoffMs}
         ORDER BY updated_at DESC
         LIMIT ${limit} OFFSET ${offset}
       `
     } else {
       return await this.sql`
         SELECT * FROM ont_current_status
-        WHERE circuit_id LIKE ${searchPattern} OR homepass_id LIKE ${searchPattern} OR raw_response LIKE ${searchPattern}
+        WHERE (circuit_id LIKE ${searchPattern} OR homepass_id LIKE ${searchPattern} OR raw_response LIKE ${searchPattern})
+          AND updated_at > ${this.staleCutoffMs}
         ORDER BY updated_at DESC
         LIMIT ${limit} OFFSET ${offset}
       `
@@ -427,18 +438,22 @@ export class TelemetryDatabase {
    * Retrieves network aggregation stats
    */
   public async getStats(): Promise<any> {
+    const cutoff = this.staleCutoffMs
     const [totalRes, onlineRes, offlineRes, errorRes, dyingGaspRes, unspecifiedRes, unknownRes] =
       await Promise.all([
-        this.sql`SELECT COUNT(*) FROM ont_current_status`,
-        this.sql`SELECT COUNT(*) FROM ont_current_status WHERE run_state = 'online'`,
-        this.sql`SELECT COUNT(*) FROM ont_current_status WHERE run_state = 'offline'`,
-        this.sql`SELECT COUNT(*) FROM ont_current_status WHERE run_state = 'error'`,
+        this.sql`SELECT COUNT(*) FROM ont_current_status WHERE updated_at > ${cutoff}`,
         this
-          .sql`SELECT COUNT(*) FROM ont_current_status WHERE run_state = 'offline' AND last_down_cause = 'dying-gasp'`,
+          .sql`SELECT COUNT(*) FROM ont_current_status WHERE run_state = 'online' AND updated_at > ${cutoff}`,
         this
-          .sql`SELECT COUNT(*) FROM ont_current_status WHERE run_state = 'offline' AND (last_down_cause = '--' OR last_down_cause IS NULL OR last_down_cause = '')`,
+          .sql`SELECT COUNT(*) FROM ont_current_status WHERE run_state = 'offline' AND updated_at > ${cutoff}`,
         this
-          .sql`SELECT COUNT(*) FROM ont_current_status WHERE run_state = 'unknown' OR run_state = 'error'`,
+          .sql`SELECT COUNT(*) FROM ont_current_status WHERE run_state = 'error' AND updated_at > ${cutoff}`,
+        this
+          .sql`SELECT COUNT(*) FROM ont_current_status WHERE run_state = 'offline' AND last_down_cause = 'dying-gasp' AND updated_at > ${cutoff}`,
+        this
+          .sql`SELECT COUNT(*) FROM ont_current_status WHERE run_state = 'offline' AND (last_down_cause = '--' OR last_down_cause IS NULL OR last_down_cause = '') AND updated_at > ${cutoff}`,
+        this
+          .sql`SELECT COUNT(*) FROM ont_current_status WHERE (run_state = 'unknown' OR run_state = 'error') AND updated_at > ${cutoff}`,
       ])
 
     const total = Number(totalRes[0].count)

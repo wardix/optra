@@ -194,6 +194,7 @@ Buat file `.env` di direktori root berdasarkan template `.env.example` berikut:
 | **OFFLINE_BACKOFF_ABOVE_24_HOURS_SKIP_MINUTES**| Jeda pemantauan jika mati > 24 jam | `720` (12 jam) |
 | **CHRONIC_OUTAGE_THRESHOLD_DAYS** | Ambang batas hari untuk klasifikasi chronic outage di dashboard | `40` (40 hari) |
 | **WEAK_SIGNAL_THRESHOLD_DBM** | Ambang batas Rx Power (dBm) untuk klasifikasi sinyal lemah di dashboard | `-24` (-24 dBm) |
+| **STALE_ENTRY_THRESHOLD_HOURS** | Ambang batas jam sebelum entri subscriber basi disembunyikan dari dashboard | `48` (48 jam) |
 
 ---
 

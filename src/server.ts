@@ -185,6 +185,14 @@ app.use('/*', serveStatic({ root: './frontend/dist' }))
 const port = parseInt(Bun.env.PORT || '3000', 10)
 console.log(`📡 Full-stack Hono Portal listening on port ${port}...`)
 
+const shutdown = async () => {
+  console.log('🔌 Shutting down Hono server gracefully...')
+  await db.close()
+  process.exit(0)
+}
+process.on('SIGTERM', shutdown)
+process.on('SIGINT', shutdown)
+
 export default {
   port,
   fetch: app.fetch,

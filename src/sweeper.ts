@@ -7,6 +7,14 @@ import type { Homepass } from './types'
 const db = new TelemetryDatabase()
 await db.init()
 
+const shutdown = async () => {
+  console.log('🔌 Shutting down sweeper daemon gracefully...')
+  await db.close()
+  process.exit(0)
+}
+process.on('SIGTERM', shutdown)
+process.on('SIGINT', shutdown)
+
 // Helper function to colorize text in the terminal
 export const colors = {
   reset: '\x1b[0m',

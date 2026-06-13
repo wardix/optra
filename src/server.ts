@@ -5,6 +5,10 @@ import { ProtelindoAuthManager } from './protelindo'
 
 const app = new Hono()
 
+// Create and initialize a single persistent database pool for the server lifetime
+const db = new TelemetryDatabase()
+await db.init()
+
 // Configurable chronic outage threshold (days)
 const CHRONIC_OUTAGE_THRESHOLD_DAYS = parseInt(Bun.env.CHRONIC_OUTAGE_THRESHOLD_DAYS || '40', 10)
 
@@ -42,15 +46,11 @@ app.get('/api/config', (c) => {
  * Retrieves network summaries and percentages
  */
 app.get('/api/stats', async (c) => {
-  const db = new TelemetryDatabase()
   try {
-    await db.init()
     const stats = await db.getStats()
     return c.json(stats)
   } catch (err: any) {
     return c.json({ error: err.message || 'Failed to fetch stats' }, 500)
-  } finally {
-    await db.close()
   }
 })
 
@@ -60,15 +60,11 @@ app.get('/api/stats', async (c) => {
  */
 app.get('/api/weak-signals', async (c) => {
   const limit = parseInt(c.req.query('limit') || '100', 10)
-  const db = new TelemetryDatabase()
   try {
-    await db.init()
     const list = await db.getWeakSignals(WEAK_SIGNAL_THRESHOLD_DBM, limit)
     return c.json(list)
   } catch (err: any) {
     return c.json({ error: err.message || 'Failed to fetch weak signals' }, 500)
-  } finally {
-    await db.close()
   }
 })
 
@@ -80,9 +76,7 @@ app.get('/api/outages', async (c) => {
   const type = c.req.query('type') // e.g. "dying-gasp" or "longest"
   const limit = parseInt(c.req.query('limit') || '1000', 10)
 
-  const db = new TelemetryDatabase()
   try {
-    await db.init()
     let list
     if (type === 'dying-gasp') {
       list = await db.getDyingGaspOutages(limit)
@@ -98,8 +92,6 @@ app.get('/api/outages', async (c) => {
     return c.json(list)
   } catch (err: any) {
     return c.json({ error: err.message || 'Failed to fetch outages' }, 500)
-  } finally {
-    await db.close()
   }
 })
 
@@ -111,15 +103,11 @@ app.get('/api/history/:homepassId', async (c) => {
   const homepassId = c.req.param('homepassId')
   const limit = parseInt(c.req.query('limit') || '20', 10)
 
-  const db = new TelemetryDatabase()
   try {
-    await db.init()
     const list = await db.getHistory(homepassId, limit)
     return c.json(list)
   } catch (err: any) {
     return c.json({ error: err.message || 'Failed to fetch history' }, 500)
-  } finally {
-    await db.close()
   }
 })
 
@@ -143,11 +131,9 @@ app.post('/api/check', async (c) => {
       return c.json({ error: 'Invalid subscriber_id' }, 400)
     }
 
-    const db = new TelemetryDatabase()
     const auth = new ProtelindoAuthManager(db)
 
     try {
-      await db.init()
       console.log(
         `⚡ Live OLT query triggered directly from frontend for ${circuit_id} (${homepass_id})`,
       )
@@ -187,8 +173,6 @@ app.post('/api/check', async (c) => {
         )
       } catch (_) {}
       return c.json({ error: err.message || 'Failed to query OLT status' }, 500)
-    } finally {
-      await db.close()
     }
   } catch (parseErr: any) {
     return c.json({ error: 'Invalid JSON body' }, 400)

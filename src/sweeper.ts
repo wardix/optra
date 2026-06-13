@@ -123,12 +123,7 @@ export async function runSweepCycle(cycleCount: number): Promise<any> {
 
           const cached = await db!.getLatestCurrentStatus(hp.subscriber_id)
           if (cached) {
-            let parsedDetail = {}
-            try {
-              parsedDetail = JSON.parse(cached.raw_response)
-            } catch (_) {}
-
-            if ((parsedDetail as any).runState === 'online') totalOnline++
+            if (cached.run_state === 'online') totalOnline++
             else totalOffline++
           } else {
             totalOffline++
@@ -146,12 +141,7 @@ export async function runSweepCycle(cycleCount: number): Promise<any> {
 
           const cached = await db!.getLatestCurrentStatus(hp.subscriber_id)
           if (cached) {
-            let parsedDetail = {}
-            try {
-              parsedDetail = JSON.parse(cached.raw_response)
-            } catch (_) {}
-
-            if ((parsedDetail as any).runState === 'online') totalOnline++
+            if (cached.run_state === 'online') totalOnline++
             else totalOffline++
           } else {
             totalOnline++
@@ -173,12 +163,7 @@ export async function runSweepCycle(cycleCount: number): Promise<any> {
 
           const cached = await db!.getLatestCurrentStatus(hp.subscriber_id)
           if (cached) {
-            let parsedDetail = {}
-            try {
-              parsedDetail = JSON.parse(cached.raw_response)
-            } catch (_) {}
-
-            if ((parsedDetail as any).runState === 'online') totalOnline++
+            if (cached.run_state === 'online') totalOnline++
             else totalOffline++
           } else {
             totalOffline++

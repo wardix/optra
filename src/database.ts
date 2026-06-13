@@ -2,13 +2,16 @@ import { SQL } from 'bun'
 
 export class TelemetryDatabase {
   private sql: SQL
-  private staleCutoffMs: number
+  private staleHours: number
 
   constructor() {
     const dbUrl = Bun.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/postgres'
     this.sql = new SQL(dbUrl)
-    const staleHours = parseInt(Bun.env.STALE_ENTRY_THRESHOLD_HOURS || '48', 10)
-    this.staleCutoffMs = Date.now() - staleHours * 3600 * 1000
+    this.staleHours = parseInt(Bun.env.STALE_ENTRY_THRESHOLD_HOURS || '48', 10)
+  }
+
+  private get staleCutoffMs(): number {
+    return Date.now() - this.staleHours * 3600 * 1000
   }
 
   /**

@@ -105,11 +105,12 @@ export async function runSweepCycle(cycleCount: number): Promise<any> {
       `🔌 Starting Worker Pool with ${colors.bold}${concurrency} workers${colors.reset} and a delay of ${colors.bold}${delayMs}ms${colors.reset} per task...\n`,
     )
 
+    let taskIndex = 0
     let processedHomepasses = 0
 
     async function startWorker(workerId: number) {
-      while (taskQueue.length > 0) {
-        const hp = taskQueue.shift()
+      while (taskIndex < taskQueue.length) {
+        const hp = taskQueue[taskIndex++]
         if (!hp) break
 
         processedHomepasses++
@@ -185,7 +186,7 @@ export async function runSweepCycle(cycleCount: number): Promise<any> {
         }
 
         // Apply delay between status fetches per worker
-        if (taskQueue.length > 0) {
+        if (taskIndex < taskQueue.length) {
           await delay(delayMs)
         }
       }

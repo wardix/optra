@@ -10,6 +10,7 @@ export class ProtelindoAuthManager {
   private timeoutMs: number
 
   private db: TelemetryDatabase
+  private cachedToken: TokenResponse | null = null
 
   constructor(db: TelemetryDatabase) {
     this.db = db
@@ -45,6 +46,7 @@ export class ProtelindoAuthManager {
         tokenData.expires_in,
         createdAt,
       )
+      this.cachedToken = tokenData
       console.log('💾 Protelindo session successfully saved to PostgreSQL database!')
     } catch (error) {
       console.error('❌ Failed to save session to PostgreSQL database:', error)
@@ -165,10 +167,17 @@ export class ProtelindoAuthManager {
    * Retrieves a valid access token, auto-refreshing via refresh token or logging in if expired
    */
   public async getValidAccessToken(): Promise<string> {
+    // 1. Check memory cache first
+    if (this.cachedToken && !this.isTokenExpired(this.cachedToken)) {
+      return this.cachedToken.access_token
+    }
+
+    // 2. Fallback to database load
     const existingSession = await this.loadSession()
 
     if (existingSession) {
       if (!this.isTokenExpired(existingSession)) {
+        this.cachedToken = existingSession
         return existingSession.access_token
       }
 

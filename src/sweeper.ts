@@ -3,6 +3,10 @@ import { NisGatewayClient } from './nis'
 import { TelemetryDatabase } from './database'
 import type { Homepass } from './types'
 
+// Create and initialize a single persistent database pool for the daemon lifetime
+const db = new TelemetryDatabase()
+await db.init()
+
 // Helper function to colorize text in the terminal
 export const colors = {
   reset: '\x1b[0m',
@@ -38,15 +42,11 @@ export async function runSweepCycle(cycleCount: number): Promise<any> {
   console.log(`Started at: ${new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })}`)
   console.log('==========================================================================\n')
 
-  let db: TelemetryDatabase | null = null
   let totalOnline = 0
   let totalOffline = 0
   let totalError = 0
 
   try {
-    db = new TelemetryDatabase()
-    await db.init() // Initialize PostgreSQL tables/indexes asynchronously
-
     const authManager = new ProtelindoAuthManager(db)
     const nisClient = new NisGatewayClient()
 
@@ -233,11 +233,6 @@ export async function runSweepCycle(cycleCount: number): Promise<any> {
       error,
     )
     return { success: false, error: (error as any).message || String(error) }
-  } finally {
-    if (db) {
-      await db.close()
-      console.log('🔒 PostgreSQL Database connection closed.')
-    }
   }
 }
 

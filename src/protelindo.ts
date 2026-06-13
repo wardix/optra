@@ -9,7 +9,10 @@ export class ProtelindoAuthManager {
   private partnerSource: string
   private timeoutMs: number
 
-  constructor() {
+  private db: TelemetryDatabase
+
+  constructor(db: TelemetryDatabase) {
+    this.db = db
     this.authUrl = Bun.env.PROTELINDO_AUTH_API_URL || ''
     this.statusUrl = Bun.env.PROTELINDO_ONT_STATUS_API_URL || ''
     this.username = Bun.env.PROTELINDO_API_USERNAME || ''
@@ -34,11 +37,9 @@ export class ProtelindoAuthManager {
    * Saves the token response to PostgreSQL database
    */
   private async saveSession(tokenData: TokenResponse): Promise<void> {
-    const db = new TelemetryDatabase()
     try {
-      await db.init()
       const createdAt = tokenData.created_at || Date.now()
-      await db.saveSession(
+      await this.db.saveSession(
         tokenData.access_token,
         tokenData.refresh_token || null,
         tokenData.expires_in,
@@ -47,8 +48,6 @@ export class ProtelindoAuthManager {
       console.log('💾 Protelindo session successfully saved to PostgreSQL database!')
     } catch (error) {
       console.error('❌ Failed to save session to PostgreSQL database:', error)
-    } finally {
-      await db.close()
     }
   }
 
@@ -56,10 +55,8 @@ export class ProtelindoAuthManager {
    * Loads the existing token from PostgreSQL database
    */
   public async loadSession(): Promise<TokenResponse | null> {
-    const db = new TelemetryDatabase()
     try {
-      await db.init()
-      const session = await db.getSession()
+      const session = await this.db.getSession()
       if (!session) return null
 
       return {
@@ -74,8 +71,6 @@ export class ProtelindoAuthManager {
     } catch (error) {
       console.error('❌ Failed to load session from PostgreSQL database:', error)
       return null
-    } finally {
-      await db.close()
     }
   }
 

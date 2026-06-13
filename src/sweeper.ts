@@ -47,7 +47,7 @@ export async function runSweepCycle(cycleCount: number): Promise<any> {
     db = new TelemetryDatabase()
     await db.init() // Initialize PostgreSQL tables/indexes asynchronously
 
-    const authManager = new ProtelindoAuthManager()
+    const authManager = new ProtelindoAuthManager(db)
     const nisClient = new NisGatewayClient()
 
     // 1. Authenticate Protelindo

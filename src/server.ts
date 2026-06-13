@@ -144,7 +144,7 @@ app.post('/api/check', async (c) => {
     }
 
     const db = new TelemetryDatabase()
-    const auth = new ProtelindoAuthManager()
+    const auth = new ProtelindoAuthManager(db)
 
     try {
       await db.init()

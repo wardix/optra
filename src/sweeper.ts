@@ -121,13 +121,7 @@ export async function runSweepCycle(cycleCount: number): Promise<any> {
             `🔌 [W#${workerId}][${currentNum}/${actualTotal}] ${colors.yellow}Skipping ${hp.subscriber_name} (Recent dying-gasp offline check < ${dyingGaspSkipHours} hours ago).${colors.reset}`,
           )
 
-          const cached = await db!.getLatestCurrentStatus(hp.subscriber_id)
-          if (cached) {
-            if (cached.run_state === 'online') totalOnline++
-            else totalOffline++
-          } else {
-            totalOffline++
-          }
+          totalOffline++
           continue
         }
 
@@ -139,13 +133,7 @@ export async function runSweepCycle(cycleCount: number): Promise<any> {
             `🔌 [W#${workerId}][${currentNum}/${actualTotal}] ${colors.green}Skipping ${hp.subscriber_name} (Excellent signal > ${goodSignalThreshold} dBm checked < ${goodSignalSkipHours} hours ago).${colors.reset}`,
           )
 
-          const cached = await db!.getLatestCurrentStatus(hp.subscriber_id)
-          if (cached) {
-            if (cached.run_state === 'online') totalOnline++
-            else totalOffline++
-          } else {
-            totalOnline++
-          }
+          totalOnline++
           continue
         }
 
@@ -161,13 +149,7 @@ export async function runSweepCycle(cycleCount: number): Promise<any> {
             `🔌 [W#${workerId}][${currentNum}/${actualTotal}] ${colors.yellow}Skipping ${hp.subscriber_name} (Offline backoff: ${backoffCheck.reason}).${colors.reset}`,
           )
 
-          const cached = await db!.getLatestCurrentStatus(hp.subscriber_id)
-          if (cached) {
-            if (cached.run_state === 'online') totalOnline++
-            else totalOffline++
-          } else {
-            totalOffline++
-          }
+          totalOffline++
           continue
         }
 

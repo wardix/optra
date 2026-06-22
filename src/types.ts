@@ -13,6 +13,7 @@ export interface Homepass {
   subscriber_name: string
   circuit_id: string
   homepass_id: string
+  subscription_status: string // "AC" | "FR" | "BL"
 }
 
 export interface HomepassesResponse {

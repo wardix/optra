@@ -148,6 +148,7 @@ app.post('/api/check', async (c) => {
         homepass_id,
         detail.runState || 'unknown',
         JSON.stringify(detail),
+        'AC',
       )
 
       return c.json({
@@ -170,6 +171,7 @@ app.post('/api/check', async (c) => {
           homepass_id,
           'error',
           JSON.stringify({ error: err.message || 'Manual check OLT request failed' }),
+          'AC',
         )
       } catch (_) {}
       return c.json({ error: err.message || 'Failed to query OLT status' }, 500)

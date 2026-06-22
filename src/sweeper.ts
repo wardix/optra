@@ -175,6 +175,7 @@ export async function runSweepCycle(cycleCount: number): Promise<any> {
             hp.homepass_id,
             detail.runState || 'unknown',
             JSON.stringify(detail),
+            hp.subscription_status,
           )
 
           if (detail.runState === 'online') totalOnline++
@@ -188,6 +189,7 @@ export async function runSweepCycle(cycleCount: number): Promise<any> {
             hp.homepass_id,
             'error',
             JSON.stringify({ error: errorMessage }),
+            hp.subscription_status,
           )
 
           totalError++

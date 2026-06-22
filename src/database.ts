@@ -50,8 +50,15 @@ export class TelemetryDatabase {
         last_down_cause VARCHAR(100),       -- Latest down cause (e.g. dying-gasp)
         last_down_time BIGINT,              -- Latest down timestamp (Unix ms)
         raw_response TEXT NOT NULL,         -- Latest full JSON response
-        updated_at BIGINT NOT NULL
+        updated_at BIGINT NOT NULL,
+        subscription_status VARCHAR(20) DEFAULT 'AC'
       )
+    `
+
+    // Migration for existing table
+    await this.sql`
+      ALTER TABLE ont_current_status
+      ADD COLUMN IF NOT EXISTS subscription_status VARCHAR(20) DEFAULT 'AC'
     `
 
     // Create indexes for performance
@@ -94,6 +101,7 @@ export class TelemetryDatabase {
     homepassId: string,
     runState: string,
     rawResponse: string,
+    subscriptionStatus: string = 'AC',
   ): Promise<void> {
     const now = Date.now()
 
@@ -168,7 +176,8 @@ export class TelemetryDatabase {
           last_down_cause,
           last_down_time,
           raw_response,
-          updated_at
+          updated_at,
+          subscription_status
         ) VALUES (
           ${subscriberId},
           ${circuitId},
@@ -178,7 +187,8 @@ export class TelemetryDatabase {
           ${lastDownCause},
           ${lastDownTimeMs},
           ${rawResponse},
-          ${now}
+          ${now},
+          ${subscriptionStatus}
         )
         ON CONFLICT (subscriber_id) DO UPDATE SET
           circuit_id = EXCLUDED.circuit_id,
@@ -188,7 +198,8 @@ export class TelemetryDatabase {
           last_down_cause = EXCLUDED.last_down_cause,
           last_down_time = EXCLUDED.last_down_time,
           raw_response = EXCLUDED.raw_response,
-          updated_at = EXCLUDED.updated_at
+          updated_at = EXCLUDED.updated_at,
+          subscription_status = EXCLUDED.subscription_status
       `
     }
   }

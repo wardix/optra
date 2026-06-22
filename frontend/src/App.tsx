@@ -20,6 +20,7 @@ interface Subscriber {
   last_down_time: string | number | null
   raw_response: string
   updated_at: number
+  subscription_status: string
 }
 
 interface HistoryItem {
@@ -33,6 +34,14 @@ interface HistoryItem {
   raw_response: string
   checked_at: number
 }
+
+
+const renderSubscriptionBadge = (status: string) => {
+  if (status === 'AC') return <span className="badge badge-xs bg-emerald-500/20 text-emerald-400 border-0 ml-2">AC</span>;
+  if (status === 'FR') return <span className="badge badge-xs bg-amber-500/20 text-amber-400 border-0 ml-2">FR</span>;
+  if (status === 'BL') return <span className="badge badge-xs bg-rose-500/20 text-rose-400 border-0 ml-2">BL</span>;
+  return null;
+};
 
 const API_BASE = import.meta.env.BASE_URL.endsWith('/')
   ? import.meta.env.BASE_URL.slice(0, -1)
@@ -388,8 +397,9 @@ export default function App() {
                           className="hover:bg-slate-800/50 cursor-pointer border-slate-800/30 transition group"
                         >
                           <td>
-                            <div className="font-extrabold text-white group-hover:text-indigo-400 transition">
+                            <div className="font-extrabold text-white group-hover:text-indigo-400 transition flex items-center">
                               {out.circuit_id}
+                              {renderSubscriptionBadge(out.subscription_status)}
                             </div>
                             <div className="text-[10px] text-slate-500">{out.homepass_id}</div>
                           </td>
@@ -468,8 +478,9 @@ export default function App() {
                         className="hover:bg-slate-800/50 cursor-pointer border-slate-800/30 transition group"
                       >
                         <td>
-                          <div className="font-extrabold text-white group-hover:text-indigo-400 transition">
+                          <div className="font-extrabold text-white group-hover:text-indigo-400 transition flex items-center">
                             {ws.circuit_id}
+                            {renderSubscriptionBadge(ws.subscription_status)}
                           </div>
                           <div className="text-[10px] text-slate-500">{ws.homepass_id}</div>
                         </td>
@@ -532,8 +543,9 @@ export default function App() {
                           className="hover:bg-slate-800/50 cursor-pointer border-slate-800/30 transition group"
                         >
                           <td>
-                            <div className="font-extrabold text-white group-hover:text-indigo-400 transition">
+                            <div className="font-extrabold text-white group-hover:text-indigo-400 transition flex items-center">
                               {out.circuit_id}
+                              {renderSubscriptionBadge(out.subscription_status)}
                             </div>
                             <div className="text-[10px] text-slate-500">{out.homepass_id}</div>
                           </td>
@@ -589,8 +601,9 @@ export default function App() {
                           className="hover:bg-slate-800/50 cursor-pointer border-slate-800/30 transition group"
                         >
                           <td>
-                            <div className="font-extrabold text-white group-hover:text-indigo-400 transition">
+                            <div className="font-extrabold text-white group-hover:text-indigo-400 transition flex items-center">
                               {out.circuit_id}
+                              {renderSubscriptionBadge(out.subscription_status)}
                             </div>
                             <div className="text-[10px] text-slate-500">{out.homepass_id}</div>
                           </td>
@@ -656,8 +669,9 @@ export default function App() {
                           className="hover:bg-slate-800/50 cursor-pointer border-slate-800/30 transition group"
                         >
                           <td>
-                            <div className="font-extrabold text-white group-hover:text-indigo-400 transition">
+                            <div className="font-extrabold text-white group-hover:text-indigo-400 transition flex items-center">
                               {out.circuit_id}
+                              {renderSubscriptionBadge(out.subscription_status)}
                             </div>
                             <div className="text-[10px] text-slate-500">{out.homepass_id}</div>
                           </td>
@@ -712,8 +726,12 @@ export default function App() {
               {/* Active Selection Details Card */}
               {historyList.length > 0 && (
                 <div className="bg-slate-950 border border-slate-800 p-4 rounded-xl mb-6 text-xs relative overflow-hidden">
-                  <div className="text-[10px] text-slate-500 uppercase tracking-wider font-extrabold">
-                    Informasi ONT Terpilih
+                  <div className="text-[10px] text-slate-500 uppercase tracking-wider font-extrabold flex justify-between">
+                    <span>Informasi ONT Terpilih</span>
+                    {(() => {
+                      const subs = [...outages, ...weakSignals, ...losOutages, ...unspecifiedOutages, ...unknownOutages].find(s => s.homepass_id === selectedHomepass);
+                      return subs ? renderSubscriptionBadge(subs.subscription_status) : null;
+                    })()}
                   </div>
                   <div className="text-sm font-black text-white mt-1">
                     {historyList[0].circuit_id}

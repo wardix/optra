@@ -142,13 +142,16 @@ app.post('/api/check', async (c) => {
       const detail = await auth.getOntStatus(circuit_id, homepass_id)
 
       // 2. Write into database
+      const existing = await db.getLatestCurrentStatus(subscriberId)
+      const currentSubStatus = existing?.subscription_status || 'AC'
+
       await db.insertLog(
         subscriberId,
         circuit_id,
         homepass_id,
         detail.runState || 'unknown',
         JSON.stringify(detail),
-        'AC',
+        currentSubStatus,
       )
 
       return c.json({
@@ -165,13 +168,16 @@ app.post('/api/check', async (c) => {
       console.error(`❌ Manual check failed for subscriber ${subscriberId}:`, err)
       // Write error status to database
       try {
+        const existing = await db.getLatestCurrentStatus(subscriberId)
+        const currentSubStatus = existing?.subscription_status || 'AC'
+
         await db.insertLog(
           subscriberId,
           circuit_id,
           homepass_id,
           'error',
           JSON.stringify({ error: err.message || 'Manual check OLT request failed' }),
-          'AC',
+          currentSubStatus,
         )
       } catch (_) {}
       return c.json({ error: err.message || 'Failed to query OLT status' }, 500)

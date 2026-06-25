@@ -700,7 +700,7 @@ export default function App() {
         </div>
 
         {/* 📊 RIGHT PANEL: Live History & Diagnostics Analyzer */}
-        <aside className="card bg-slate-900 border border-slate-800 shadow-xl rounded-2xl p-6">
+        <aside className="card bg-slate-900 border border-slate-800 shadow-xl rounded-2xl p-6 xl:sticky xl:top-6 xl:self-start max-h-[calc(100vh-3rem)] overflow-y-auto">
           <div className="border-b border-slate-800 pb-4 mb-4 flex justify-between items-center">
             <h3 className="text-lg font-black text-white">🔎 History Analyzer</h3>
             {selectedHomepass && (

@@ -96,6 +96,24 @@ app.get('/api/outages', async (c) => {
 })
 
 /**
+ * GET /api/subscribers
+ * Searches or lists subscribers based on search term, status, limit and offset
+ */
+app.get('/api/subscribers', async (c) => {
+  const search = c.req.query('search') || undefined
+  const status = c.req.query('status') || undefined
+  const limit = parseInt(c.req.query('limit') || '100', 10)
+  const offset = parseInt(c.req.query('offset') || '0', 10)
+
+  try {
+    const list = await db.getAllSubscribers(search, status, limit, offset)
+    return c.json(list)
+  } catch (err: any) {
+    return c.json({ error: err.message || 'Failed to search subscribers' }, 500)
+  }
+})
+
+/**
  * GET /api/history/:homepassId
  * Historical checks for a subscriber
  */

@@ -410,9 +410,11 @@ export class TelemetryDatabase {
    */
   public async getHistory(homepassId: string, limit: number = 20): Promise<any[]> {
     return await this.sql`
-      SELECT * FROM ont_telemetry_logs
-      WHERE homepass_id = ${homepassId} OR circuit_id = ${homepassId}
-      ORDER BY checked_at DESC
+      SELECT l.*, c.subscription_status
+      FROM ont_telemetry_logs l
+      LEFT JOIN ont_current_status c ON l.subscriber_id = c.subscriber_id
+      WHERE l.homepass_id = ${homepassId} OR l.circuit_id = ${homepassId}
+      ORDER BY l.checked_at DESC
       LIMIT ${limit}
     `
   }

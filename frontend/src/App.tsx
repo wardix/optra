@@ -33,15 +33,20 @@ interface HistoryItem {
   last_down_time: string | number | null
   raw_response: string
   checked_at: number
+  subscription_status?: string
 }
 
-
 const renderSubscriptionBadge = (status: string) => {
-  if (status === 'AC') return <span className="badge badge-xs bg-emerald-500/20 text-emerald-400 border-0 ml-2">AC</span>;
-  if (status === 'FR') return <span className="badge badge-xs bg-amber-500/20 text-amber-400 border-0 ml-2">FR</span>;
-  if (status === 'BL') return <span className="badge badge-xs bg-rose-500/20 text-rose-400 border-0 ml-2">BL</span>;
-  return null;
-};
+  if (status === 'AC')
+    return (
+      <span className="badge badge-xs bg-emerald-500/20 text-emerald-400 border-0 ml-2">AC</span>
+    )
+  if (status === 'FR')
+    return <span className="badge badge-xs bg-amber-500/20 text-amber-400 border-0 ml-2">FR</span>
+  if (status === 'BL')
+    return <span className="badge badge-xs bg-rose-500/20 text-rose-400 border-0 ml-2">BL</span>
+  return null
+}
 
 const API_BASE = import.meta.env.BASE_URL.endsWith('/')
   ? import.meta.env.BASE_URL.slice(0, -1)
@@ -72,6 +77,10 @@ export default function App() {
   const [historyList, setHistoryList] = useState<HistoryItem[]>([])
   const [isLoadingHistory, setIsLoadingHistory] = useState(false)
   const [isCheckingOnt, setIsCheckingOnt] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [suggestions, setSuggestions] = useState<Subscriber[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [isSearching, setIsSearching] = useState(false)
 
   const handleManualCheck = async (subscriberId: number) => {
     if (historyList.length === 0) return
@@ -149,6 +158,32 @@ export default function App() {
     const interval = setInterval(fetchData, 10000) // Auto refresh every 10 seconds
     return () => clearInterval(interval)
   }, [])
+
+  // Dynamic search suggestions query with 300ms debounce
+  useEffect(() => {
+    if (!searchQuery || searchQuery.trim().length < 2) {
+      setSuggestions([])
+      return
+    }
+
+    const delayDebounce = setTimeout(async () => {
+      setIsSearching(true)
+      try {
+        const res = await fetch(
+          `${API_BASE}/api/subscribers?search=${encodeURIComponent(searchQuery)}&limit=10`,
+        )
+        if (res.ok) {
+          setSuggestions(await res.json())
+        }
+      } catch (err) {
+        console.error('Error fetching search suggestions:', err)
+      } finally {
+        setIsSearching(false)
+      }
+    }, 300)
+
+    return () => clearTimeout(delayDebounce)
+  }, [searchQuery])
 
   // Load history when a subscriber is selected
   useEffect(() => {
@@ -238,6 +273,89 @@ export default function App() {
           <span className="badge badge-indigo border-indigo-700/50 badge-sm font-semibold ml-2">
             v2.0
           </span>
+        </div>
+
+        {/* 🔍 Global Search Bar */}
+        <div className="relative w-full md:max-w-md mx-auto">
+          <div className="relative">
+            <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400 text-xs">
+              🔍
+            </span>
+            <input
+              type="text"
+              placeholder="Cari Circuit ID atau Homepass ID..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => setShowSuggestions(true)}
+              onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+              className="input input-sm w-full pl-9 pr-8 bg-slate-950/80 border-slate-800 rounded-xl focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 text-slate-200 placeholder-slate-500 text-xs transition-all"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-slate-500 hover:text-slate-200 text-xs"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          {/* Suggestions Dropdown */}
+          {showSuggestions && searchQuery.trim().length >= 2 && (
+            <div className="absolute z-50 w-full mt-2 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto">
+              {isSearching ? (
+                <div className="flex items-center gap-2 p-3 text-xs text-slate-500">
+                  <span className="loading loading-spinner loading-xs text-indigo-500"></span>
+                  Mencari...
+                </div>
+              ) : suggestions.length === 0 ? (
+                <div className="p-3 text-xs text-slate-500">
+                  Tidak ditemukan pelanggan yang cocok.
+                </div>
+              ) : (
+                <div className="py-1">
+                  {suggestions.map((sub) => {
+                    const isOnline = sub.run_state === 'online'
+                    const isError = sub.run_state === 'error'
+                    const isDyingGasp =
+                      sub.run_state === 'offline' && sub.last_down_cause === 'dying-gasp'
+
+                    let statusDot = 'bg-slate-500'
+                    if (isOnline) statusDot = 'bg-emerald-500'
+                    else if (isDyingGasp) statusDot = 'bg-amber-500 animate-pulse'
+                    else if (isError) statusDot = 'bg-yellow-500'
+                    else if (sub.run_state === 'offline') statusDot = 'bg-rose-500'
+
+                    return (
+                      <button
+                        key={sub.subscriber_id}
+                        onMouseDown={() => {
+                          setSelectedHomepass(sub.homepass_id)
+                          setSearchQuery('')
+                        }}
+                        className="w-full text-left px-4 py-2 hover:bg-slate-800/80 transition flex items-center justify-between text-xs border-b border-slate-800/20 last:border-b-0"
+                      >
+                        <div className="flex flex-col">
+                          <span className="font-extrabold text-slate-200">{sub.circuit_id}</span>
+                          <span className="text-[10px] text-slate-500 font-mono">
+                            {sub.homepass_id}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {sub.rx_optical_power !== null && (
+                            <span className="text-[10px] font-mono text-cyan-400 font-bold">
+                              {sub.rx_optical_power.toFixed(1)} dBm
+                            </span>
+                          )}
+                          <span className={`w-2 h-2 rounded-full ${statusDot}`}></span>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex gap-3">
@@ -728,10 +846,8 @@ export default function App() {
                 <div className="bg-slate-950 border border-slate-800 p-4 rounded-xl mb-6 text-xs relative overflow-hidden">
                   <div className="text-[10px] text-slate-500 uppercase tracking-wider font-extrabold flex justify-between">
                     <span>Informasi ONT Terpilih</span>
-                    {(() => {
-                      const subs = [...outages, ...weakSignals, ...losOutages, ...unspecifiedOutages, ...unknownOutages].find(s => s.homepass_id === selectedHomepass);
-                      return subs ? renderSubscriptionBadge(subs.subscription_status) : null;
-                    })()}
+                    {historyList[0]?.subscription_status &&
+                      renderSubscriptionBadge(historyList[0].subscription_status)}
                   </div>
                   <div className="text-sm font-black text-white mt-1">
                     {historyList[0].circuit_id}

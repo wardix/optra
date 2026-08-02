@@ -109,43 +109,7 @@ async function fetchTargets(
   homepassPrefix: string,
   beforeMs: number | null,
 ): Promise<{ subscriber_id: number; circuit_id: string; homepass_id: string; run_state: string; updated_at: number }[]> {
-  // Access internal sql client via db's public method workaround:
-  // We use a raw query through a helper method added to DB, 
-  // but since TelemetryDatabase doesn't expose a raw query method,
-  // we'll use Bun's built-in postgres directly with DATABASE_URL.
-  const { sql } = await import('bun')
-
-  const DATABASE_URL = Bun.env.DATABASE_URL
-  if (!DATABASE_URL) {
-    throw new Error('DATABASE_URL tidak ditemukan di .env')
-  }
-
-  const client = sql(DATABASE_URL)
-
-  try {
-    let rows: any[]
-
-    if (beforeMs !== null) {
-      rows = await client`
-        SELECT subscriber_id, circuit_id, homepass_id, run_state, updated_at
-        FROM ont_current_status
-        WHERE homepass_id LIKE ${homepassPrefix + '%'}
-          AND updated_at < ${beforeMs}
-        ORDER BY updated_at ASC
-      `
-    } else {
-      rows = await client`
-        SELECT subscriber_id, circuit_id, homepass_id, run_state, updated_at
-        FROM ont_current_status
-        WHERE homepass_id LIKE ${homepassPrefix + '%'}
-        ORDER BY updated_at ASC
-      `
-    }
-
-    return rows as any[]
-  } finally {
-    await client.close()
-  }
+  return db.fetchRecheckTargets(homepassPrefix, beforeMs)
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

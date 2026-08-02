@@ -522,6 +522,54 @@ export class TelemetryDatabase {
   }
 
   /**
+   * Fetches subscribers from ont_current_status for recheck CLI tool.
+   * Filters by homepass_id prefix and optionally by updated_at before a given timestamp.
+   */
+  public async fetchRecheckTargets(
+    homepassPrefix: string,
+    beforeMs: number | null,
+  ): Promise<{ subscriber_id: number; circuit_id: string; homepass_id: string; run_state: string; updated_at: number }[]> {
+    const likePattern = homepassPrefix + '%'
+    if (beforeMs !== null) {
+      const rows = await this.sql`
+        SELECT subscriber_id, circuit_id, homepass_id, run_state, updated_at
+        FROM ont_current_status
+        WHERE homepass_id LIKE ${likePattern}
+          AND updated_at < ${beforeMs}
+        ORDER BY updated_at ASC
+      `
+      return rows as any[]
+    } else {
+      const rows = await this.sql`
+        SELECT subscriber_id, circuit_id, homepass_id, run_state, updated_at
+        FROM ont_current_status
+        WHERE homepass_id LIKE ${likePattern}
+        ORDER BY updated_at ASC
+      `
+      return rows as any[]
+    }
+  }
+
+  /**
+   * Fetches subscribers from ont_current_status for los-export CLI tool.
+   * Filters by last_down_cause = 'los' and last_down_time within a given range.
+   */
+  public async fetchLosTargets(
+    fromMs: number,
+    toMs: number,
+  ): Promise<{ subscriber_id: number; circuit_id: string; homepass_id: string }[]> {
+    const rows = await this.sql`
+      SELECT subscriber_id, circuit_id, homepass_id
+      FROM ont_current_status
+      WHERE last_down_cause = 'los'
+        AND last_down_time >= ${fromMs}
+        AND last_down_time <= ${toMs}
+      ORDER BY last_down_time ASC
+    `
+    return rows as any[]
+  }
+
+  /**
    * Close the database connection
    */
   public async close(): Promise<void> {

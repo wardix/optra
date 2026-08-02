@@ -175,28 +175,14 @@ interface LosTarget {
   homepass_id: string
 }
 
-// ─── Query DB ─────────────────────────────────────────────────────────────────
+// ─── Query DB ─────────────────────────────────────────────────────
 
-async function fetchLosTargets(fromMs: number, toMs: number): Promise<LosTarget[]> {
-  const { sql } = await import('bun')
-
-  const DATABASE_URL = Bun.env.DATABASE_URL
-  if (!DATABASE_URL) throw new Error('DATABASE_URL tidak ditemukan di .env')
-
-  const client = sql(DATABASE_URL)
-  try {
-    const rows = await client`
-      SELECT subscriber_id, circuit_id, homepass_id
-      FROM ont_current_status
-      WHERE last_down_cause = 'los'
-        AND last_down_time >= ${fromMs}
-        AND last_down_time <= ${toMs}
-      ORDER BY last_down_time ASC
-    `
-    return rows as LosTarget[]
-  } finally {
-    await client.close()
-  }
+async function fetchLosTargets(
+  db: TelemetryDatabase,
+  fromMs: number,
+  toMs: number,
+): Promise<LosTarget[]> {
+  return db.fetchLosTargets(fromMs, toMs)
 }
 
 // ─── Live Check ───────────────────────────────────────────────────────────────
@@ -350,7 +336,7 @@ async function main() {
 
   // Step 1: Fetch candidates from DB
   console.log(`${BLUE}🔍 Mengambil kandidat LOS dari database...${RESET}`)
-  const targets = await fetchLosTargets(fromMs, toMs)
+  const targets = await fetchLosTargets(db, fromMs, toMs)
 
   if (targets.length === 0) {
     console.log(`${YELLOW}⚠️  Tidak ada ONT LOS yang ditemukan dalam periode tersebut.${RESET}\n`)

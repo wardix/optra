@@ -195,7 +195,7 @@ async function fetchLosTargets(fromMs: number, toMs: number): Promise<LosTarget[
     `
     return rows as LosTarget[]
   } finally {
-    await client.end()
+    await client.close()
   }
 }
 

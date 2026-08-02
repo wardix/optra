@@ -144,7 +144,7 @@ async function fetchTargets(
 
     return rows as any[]
   } finally {
-    await client.end()
+    await client.close()
   }
 }
 

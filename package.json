@@ -6,6 +6,7 @@
     "dev:sweeper": "bun run src/sweeper.ts",
     "dev:server": "bun run src/server.ts",
     "recheck": "bun run src/recheck.ts",
+    "los-export": "bun run src/los-export.ts",
     "build:frontend": "cd frontend && bun run build",
     "format": "bunx @biomejs/biome format --write src/ frontend/src/App.tsx frontend/src/main.tsx",
     "prepare": "husky"

@@ -265,7 +265,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-6 font-sans">
       {/* 🚀 Top Navigation Banner */}
-      <header className="navbar bg-slate-900/80 backdrop-blur-md rounded-2xl border border-slate-800 shadow-xl mb-8 p-4 flex flex-wrap md:flex-nowrap justify-between gap-4">
+      <header className="relative z-50 navbar bg-slate-900/80 backdrop-blur-md rounded-2xl border border-slate-800 shadow-xl mb-8 p-4 flex flex-wrap md:flex-nowrap justify-between gap-4">
         <div>
           <span className="text-2xl font-black tracking-wider bg-gradient-to-r from-cyan-400 via-indigo-400 to-purple-500 bg-clip-text text-transparent">
             📡 OPTRA PORTAL

@@ -350,7 +350,7 @@ export default function App() {
                         className="w-full text-left px-4 py-2 hover:bg-slate-800/80 transition flex items-center justify-between text-xs border-b border-slate-800/20 last:border-b-0"
                       >
                         <div className="flex flex-col">
-                          <span className="font-extrabold text-slate-200">{highlightMatch(sub.circuit_id, searchQuery)}</span>
+                          <span className="text-slate-200">{highlightMatch(sub.circuit_id, searchQuery)}</span>
                           <span className="text-[10px] text-slate-500 font-mono">
                             {highlightMatch(sub.homepass_id, searchQuery)}
                           </span>

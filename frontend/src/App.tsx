@@ -82,6 +82,20 @@ export default function App() {
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [isSearching, setIsSearching] = useState(false)
 
+  // Highlight matching substring in text based on search query
+  const highlightMatch = (text: string, query: string): React.ReactNode => {
+    if (!query.trim()) return text
+    const index = text.toLowerCase().indexOf(query.toLowerCase())
+    if (index === -1) return text
+    return (
+      <>
+        {text.slice(0, index)}
+        <span className="text-cyan-400 font-black">{text.slice(index, index + query.length)}</span>
+        {text.slice(index + query.length)}
+      </>
+    )
+  }
+
   const handleManualCheck = async (subscriberId: number) => {
     if (historyList.length === 0) return
 
@@ -336,9 +350,9 @@ export default function App() {
                         className="w-full text-left px-4 py-2 hover:bg-slate-800/80 transition flex items-center justify-between text-xs border-b border-slate-800/20 last:border-b-0"
                       >
                         <div className="flex flex-col">
-                          <span className="font-extrabold text-slate-200">{sub.circuit_id}</span>
+                          <span className="font-extrabold text-slate-200">{highlightMatch(sub.circuit_id, searchQuery)}</span>
                           <span className="text-[10px] text-slate-500 font-mono">
-                            {sub.homepass_id}
+                            {highlightMatch(sub.homepass_id, searchQuery)}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
